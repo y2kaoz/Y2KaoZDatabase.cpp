@@ -1,0 +1,42 @@
+pkgname="@PROJECT_NAME@"
+pkgver=@PROJECT_VERSION@
+pkgrel=1
+arch=('x86_64')
+license=('GPL')
+options=(!strip debug staticlibs buildflags)
+
+prepare() {
+	ROOT_PATH="@CMAKE_CURRENT_SOURCE_DIR@"
+	PREFIX_MAP="-fdebug-prefix-map=$ROOT_PATH=."
+	echo "using $PREFIX_MAP"
+	mkdir -p static;
+	mkdir -p shared;
+	mkdir -p static-debug;
+	mkdir -p shared-debug;
+	cd static
+	cmake -DCMAKE_BUILD_TYPE="MinSizeRel" -DCMAKE_INSTALL_PREFIX="/opt/lib/$pkgname-$pkgver" -DBUILD_SHARED_LIBS=0 "$ROOT_PATH"
+	cd ..
+	cd shared
+	cmake -DCMAKE_BUILD_TYPE="MinSizeRel" -DCMAKE_INSTALL_PREFIX="/opt/lib/$pkgname-$pkgver" -DBUILD_SHARED_LIBS=1 "$ROOT_PATH"
+	cd ..
+	cd static-debug
+	cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS $PREFIX_MAP -g3 -Og" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_RELWITHDEBINFO_POSTFIX="_d" -DCMAKE_INSTALL_PREFIX="/opt/lib/$pkgname-$pkgver" -DBUILD_SHARED_LIBS=0 "$ROOT_PATH"
+	cd ..
+	cd shared-debug
+	cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS $PREFIX_MAP -g3 -Og" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_RELWITHDEBINFO_POSTFIX="_d" -DCMAKE_INSTALL_PREFIX="/opt/lib/$pkgname-$pkgver" -DBUILD_SHARED_LIBS=1 "$ROOT_PATH"
+	cd ..
+}
+
+build() {
+	cd static; make; cd ..
+	cd shared; make; cd ..
+	cd static-debug; make; cd ..
+	cd shared-debug; make; cd ..
+}
+
+package() {
+	cd static; make DESTDIR="$pkgdir" install; cd ..
+	cd shared; make DESTDIR="$pkgdir" install; cd ..	
+	cd static-debug; make DESTDIR="$pkgdir" install; cd ..	
+	cd shared-debug; make DESTDIR="$pkgdir" install; cd ..	
+}
